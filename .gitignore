@@ -1,0 +1,38 @@
+# Build artifacts
+**/target/
+**/*.jar
+**/*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Environment
+.env
+*.env.local
+.env
+*.env.local

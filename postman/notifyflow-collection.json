@@ -1,0 +1,175 @@
+{
+  "info": {
+    "name": "NotifyFlow API",
+    "description": "API collection for testing the NotifyFlow microservices system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8083",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Demo",
+      "description": "Simplified demo endpoints for quick testing",
+      "item": [
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/demo/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["demo", "status"]
+            },
+            "description": "Check the overall system status and list of running services"
+          }
+        },
+        {
+          "name": "Send Demo Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@notifyflow.com\",\n  \"message\": \"Hello from NotifyFlow demo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/demo/event",
+              "host": ["{{baseUrl}}"],
+              "path": ["demo", "event"]
+            },
+            "description": "Send a simplified demo event that flows through the entire system"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events API",
+      "description": "Full event creation API via Gateway",
+      "item": [
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventType\": \"TASK_ASSIGNED\",\n  \"userEmail\": \"operator1@notifyflow.com\",\n  \"message\": \"New task assigned to you\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            },
+            "description": "Create an event via the User Service (routed through Gateway)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Service health and actuator endpoints",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Check Gateway Service health via Spring Boot Actuator"
+          }
+        },
+        {
+          "name": "Gateway Health (Custom)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/gateway/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["gateway", "health"]
+            },
+            "description": "Custom gateway health endpoint"
+          }
+        },
+        {
+          "name": "User Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/actuator/health",
+              "host": ["http://localhost:8081"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Direct health check for User Service"
+          }
+        },
+        {
+          "name": "Notification Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/actuator/health",
+              "host": ["http://localhost:8082"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Direct health check for Notification Service"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Metrics",
+      "description": "Prometheus metrics endpoints",
+      "item": [
+        {
+          "name": "Gateway Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "prometheus"]
+            },
+            "description": "Prometheus metrics for Gateway Service"
+          }
+        },
+        {
+          "name": "User Service Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/actuator/prometheus",
+              "host": ["http://localhost:8081"],
+              "path": ["actuator", "prometheus"]
+            },
+            "description": "Prometheus metrics for User Service"
+          }
+        }
+      ]
+    }
+  ]
+}
