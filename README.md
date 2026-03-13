@@ -1,35 +1,73 @@
 # NotifyFlow
 
-**Event-driven notification microservices system** built with Spring Boot 3, Java 21, RabbitMQ, and Spring Cloud Gateway.
-
-```
-Client → Gateway Service → User Service → RabbitMQ → Notification Service
-```
+### Event-Driven Notification Microservices Platform
 
 ---
 
 ## Overview
 
-NotifyFlow demonstrates a production-grade microservices architecture with asynchronous event processing, API gateway routing, resilience patterns, distributed tracing, and metrics monitoring — all containerized with Docker Compose.
+NotifyFlow simulates how enterprise systems publish business events that trigger downstream notification services using asynchronous messaging.
 
-A client sends an event through the **Gateway**, which routes it to the **User Service**. The event is persisted and published to **RabbitMQ**, where the **Notification Service** consumes it and delivers the notification.
+The project demonstrates **event-driven architecture**, **microservices communication**, and **containerized deployment** — built with Spring Boot 3, Java 21, and RabbitMQ.
+
+**This project showcases:**
+
+- Microservices architecture with API gateway routing
+- Event-driven messaging via RabbitMQ
+- Container orchestration with Docker Compose
+- Distributed system design with observability and resilience
+
+---
 
 ## Architecture
 
+![Architecture](diagrams/architecture.png)
+
 ```
-┌────────┐     ┌─────────────┐     ┌──────────────┐     ┌──────────┐     ┌───────────────────┐
-│ Client │────▶│   Gateway   │────▶│ User Service │────▶│ RabbitMQ │────▶│ Notification Svc  │
-│        │     │   (8083)    │     │   (8081)     │     │  (5672)  │     │     (8082)        │
-└────────┘     └─────────────┘     └──────┬───────┘     └──────────┘     └───────────────────┘
-                                          │
-                                   ┌──────┴──────┐
-                                   │ H2 Database  │
-                                   └─────────────┘
+                    ┌──────────────────────────────────────────────┐
+                    │            NotifyFlow Platform               │
+                    └──────────────────────────────────────────────┘
+
+  ┌────────┐       ┌───────────────┐      ┌──────────────┐       ┌──────────────┐
+  │        │ HTTP  │               │ HTTP │              │ AMQP  │              │
+  │ Client │──────▶│    Gateway    │─────▶│    User      │──────▶│   RabbitMQ   │
+  │        │       │    Service    │      │   Service    │       │              │
+  └────────┘       │   (8083)     │      │   (8081)    │       └──────┬───────┘
+                   └───────────────┘      └──────┬───────┘              │
+                                                 │                     │ AMQP
+                                                 ▼                     ▼
+                                          ┌──────────────┐   ┌──────────────────┐
+                                          │ H2 Database  │   │  Notification    │
+                                          │ (in-memory)  │   │  Service (8082)  │
+                                          └──────────────┘   └──────────────────┘
+
+  ┌──────────────────────────────────────────────────────────────────────────────┐
+  │                         Observability Layer                                  │
+  │  Prometheus (9090) ──▶ Grafana (3000)         Zipkin (9411)                  │
+  └──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## System Flow
+
+How events move through the platform:
+
+```
+1.  Client sends event request       →  POST /demo/event
+2.  Gateway Service routes request   →  Forwards to User Service
+3.  User Service stores event        →  Persists to H2 database
+4.  User Service publishes event     →  Sends to RabbitMQ exchange
+5.  RabbitMQ queues the message      →  Routes to events.queue
+6.  Notification Service consumes    →  Reads from queue
+7.  Notification is delivered        →  Logs notification confirmation
+```
+
+---
 
 ## Technology Stack
 
-| Component        | Technology                            |
+| Layer            | Technology                            |
 |------------------|---------------------------------------|
 | Language         | Java 21                               |
 | Framework        | Spring Boot 3.4.3                     |
@@ -41,6 +79,9 @@ A client sends an event through the **Gateway**, which routes it to the **User S
 | Tracing          | Micrometer Tracing + Zipkin           |
 | API Docs         | SpringDoc OpenAPI (Swagger UI)        |
 | Containerization | Docker + Docker Compose               |
+| Build Tool       | Maven                                 |
+
+---
 
 ## Quick Start
 
@@ -50,44 +91,39 @@ A client sends an event through the **Gateway**, which routes it to the **User S
 - Maven 3.8+
 - Docker & Docker Compose
 
-### Run Locally
+### Start the System
 
 ```bash
 git clone https://github.com/your-username/notifyflow.git
 cd notifyflow
-
-# Make scripts executable
 chmod +x scripts/*.sh
 
-# Build and start the entire system
 bash scripts/start-local.sh
 ```
 
-This builds all services and starts 7 containers (RabbitMQ, Zipkin, Prometheus, Grafana, and 3 microservices).
+This builds all services and starts 7 containers — RabbitMQ, Zipkin, Prometheus, Grafana, and 3 microservices.
 
-### Test the System
+### Test the Event Pipeline
+
+After the system starts (~30 seconds):
 
 ```bash
 bash scripts/test-event.sh
 ```
 
-Or manually:
+This triggers the full event flow:
 
-```bash
-# Check system status
-curl http://localhost:8083/demo/status
-
-# Send a demo event
-curl -X POST http://localhost:8083/demo/event \
-  -H "Content-Type: application/json" \
-  -d '{"email":"demo@notifyflow.com","message":"Hello from NotifyFlow"}'
+```
+Gateway → User Service → RabbitMQ → Notification Service
 ```
 
-### Stop
+### Stop the System
 
 ```bash
 bash scripts/stop-local.sh
 ```
+
+---
 
 ## API Examples
 
@@ -105,12 +141,25 @@ curl http://localhost:8083/demo/status
 }
 ```
 
-### Send Notification Event
+### Trigger a Notification Event
 
 ```bash
 curl -X POST http://localhost:8083/demo/event \
   -H "Content-Type: application/json" \
   -d '{"email":"demo@notifyflow.com","message":"Hello from NotifyFlow"}'
+```
+
+```json
+{
+  "status": "success",
+  "message": "Event sent and notification triggered",
+  "event": {
+    "id": 1,
+    "eventType": "DEMO_EVENT",
+    "userEmail": "demo@notifyflow.com",
+    "message": "Hello from NotifyFlow"
+  }
+}
 ```
 
 ### Full Event API
@@ -125,94 +174,94 @@ curl -X POST http://localhost:8083/api/events \
   }'
 ```
 
+---
+
 ## Services
 
-| Service              | Port | Description                          |
+| Service              | Port | Role                                 |
 |----------------------|------|--------------------------------------|
 | Gateway Service      | 8083 | API gateway, routing, demo endpoints |
 | User Service         | 8081 | Event creation, RabbitMQ publishing  |
 | Notification Service | 8082 | Event consumption, notifications     |
-| RabbitMQ             | 5672 | Message broker (mgmt: 15672)         |
+| RabbitMQ             | 5672 | Async message broker (mgmt: 15672)   |
 
 ## Observability
 
-| Tool       | URL                                   | Credentials                  |
-|------------|---------------------------------------|------------------------------|
-| Swagger UI | http://localhost:8083/swagger-ui.html | —                            |
-| Grafana    | http://localhost:3000                  | See `infrastructure/.env.example` |
-| Prometheus | http://localhost:9090                  | —                            |
-| Zipkin     | http://localhost:9411                  | —                            |
-| RabbitMQ   | http://localhost:15672                 | See `infrastructure/.env.example` |
+| Tool       | URL                                   | Purpose                |
+|------------|---------------------------------------|------------------------|
+| Swagger UI | http://localhost:8083/swagger-ui.html | API documentation      |
+| Grafana    | http://localhost:3000                  | Metrics dashboards     |
+| Prometheus | http://localhost:9090                  | Metrics collection     |
+| Zipkin     | http://localhost:9411                  | Distributed tracing    |
+| RabbitMQ   | http://localhost:15672                 | Message broker console |
+
+> Default credentials are in `infrastructure/.env.example`
+
+---
+
+## Live Demo
+
+> When deployed to Render:
+
+```bash
+# Check system status
+curl https://notifyflow-gateway.onrender.com/demo/status
+
+# Send notification event
+curl -X POST https://notifyflow-gateway.onrender.com/demo/event \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@notifyflow.com","message":"Hello from the cloud"}'
+```
+
+See [deployment guide](docs/deployment-render.md) for setup instructions.
+
+---
 
 ## Project Structure
 
 ```
 notifyflow/
 │
-├── services/
-│   ├── gateway-service/          # Spring Cloud Gateway — API entry point
-│   │   ├── src/main/java/
-│   │   │   ├── controller/       # Demo + health endpoints
-│   │   │   ├── service/          # Demo event forwarding (WebClient)
-│   │   │   ├── entity/           # Request/response DTOs
-│   │   │   └── config/           # Gateway routes, OpenAPI
-│   │   ├── Dockerfile
-│   │   └── pom.xml
-│   │
-│   ├── user-service/             # Event creation + RabbitMQ publishing
-│   │   ├── src/main/java/
-│   │   │   ├── controller/       # REST API (POST /api/events)
-│   │   │   ├── service/          # Business logic + Resilience4j
-│   │   │   ├── entity/           # Event JPA entity
-│   │   │   ├── repository/       # Spring Data JPA
-│   │   │   └── config/           # RabbitMQ, OpenAPI
-│   │   ├── Dockerfile
-│   │   └── pom.xml
-│   │
-│   └── notification-service/     # Event consumer + notification delivery
-│       ├── src/main/java/
-│       │   ├── controller/       # Health endpoint
-│       │   ├── service/          # RabbitMQ listener
-│       │   ├── entity/           # Event message DTO
-│       │   └── config/           # RabbitMQ bindings
-│       ├── Dockerfile
-│       └── pom.xml
+├── services/                          # Microservices
+│   ├── gateway-service/               #   API gateway (Spring Cloud Gateway)
+│   ├── user-service/                  #   Event creation + RabbitMQ publishing
+│   └── notification-service/          #   Event consumer + notification delivery
 │
-├── infrastructure/
-│   ├── docker-compose.yml        # Full stack: 7 containers
-│   ├── prometheus.yml            # Prometheus scrape config
-│   ├── grafana-dashboards/       # Pre-built Grafana dashboards
-│   └── provisioning/             # Grafana datasource + dashboard provisioning
+├── infrastructure/                    # Container orchestration
+│   ├── docker-compose.yml             #   Full stack (7 containers)
+│   ├── prometheus.yml                 #   Metrics scrape config
+│   ├── .env.example                   #   Environment variable template
+│   └── provisioning/                  #   Grafana dashboards + datasources
 │
-├── docs/
-│   ├── architecture.md           # System architecture overview
-│   ├── system-flow.md            # Event flow walkthrough
-│   ├── local-setup.md            # Local development guide
-│   ├── deployment-render.md      # Render deployment guide
-│   └── demo-guide.md             # Demo walkthrough with curl examples
+├── docs/                              # Documentation
+│   ├── architecture.md                #   System architecture
+│   ├── system-flow.md                 #   Event flow walkthrough
+│   ├── local-setup.md                 #   Local development guide
+│   ├── deployment-render.md           #   Cloud deployment guide
+│   └── demo-guide.md                  #   Demo walkthrough
 │
-├── scripts/
-│   ├── start-local.sh            # Build + start entire system
-│   ├── stop-local.sh             # Stop all containers
-│   ├── test-event.sh             # Send demo event + verify
-│   └── build-all.sh              # Build all services
+├── scripts/                           # Automation
+│   ├── start-local.sh                 #   Build + start system
+│   ├── stop-local.sh                  #   Stop all containers
+│   ├── test-event.sh                  #   Test event pipeline
+│   └── build-all.sh                   #   Build all services
 │
-├── diagrams/
-│   └── architecture-diagram.md   # Mermaid + text architecture diagrams
+├── diagrams/                          # Architecture diagrams
+│   └── architecture-diagram.md        #   Mermaid + text diagrams
 │
-├── postman/
-│   └── notifyflow-collection.json # Postman API collection
+├── postman/                           # API testing
+│   └── notifyflow-collection.json     #   Postman collection
 │
 ├── .gitignore
 ├── LICENSE
 └── README.md
 ```
 
+---
+
 ## Deployment
 
-Each service can be deployed independently to [Render](https://render.com) as a Docker web service. See [docs/deployment-render.md](docs/deployment-render.md) for step-by-step instructions.
-
-**Environment variables:**
+Each service deploys independently to [Render](https://render.com) as a Docker web service.
 
 | Variable               | Example Value                                  |
 |------------------------|------------------------------------------------|
@@ -220,16 +269,22 @@ Each service can be deployed independently to [Render](https://render.com) as a 
 | `SPRING_RABBITMQ_HOST` | `sparrow.rmq.cloudamqp.com`                   |
 | `USER_SERVICE_URL`     | `https://notifyflow-user-service.onrender.com` |
 
+See [docs/deployment-render.md](docs/deployment-render.md) for step-by-step instructions.
+
+---
+
 ## Documentation
 
-| Document                                              | Description                      |
-|-------------------------------------------------------|----------------------------------|
-| [Architecture](docs/architecture.md)                  | System design and components     |
-| [System Flow](docs/system-flow.md)                    | How events move through services |
-| [Local Setup](docs/local-setup.md)                    | Running locally with Docker      |
-| [Deployment](docs/deployment-render.md)               | Deploying to Render              |
-| [Demo Guide](docs/demo-guide.md)                      | Testing with curl examples       |
-| [Architecture Diagram](diagrams/architecture-diagram.md) | Visual system diagrams        |
+| Document                                                  | Description                      |
+|-----------------------------------------------------------|----------------------------------|
+| [Architecture](docs/architecture.md)                      | System design and components     |
+| [System Flow](docs/system-flow.md)                        | Event lifecycle walkthrough      |
+| [Local Setup](docs/local-setup.md)                        | Running locally with Docker      |
+| [Deployment](docs/deployment-render.md)                   | Deploying to Render              |
+| [Demo Guide](docs/demo-guide.md)                          | Testing with curl examples       |
+| [Architecture Diagram](diagrams/architecture-diagram.md)  | Mermaid + text diagrams          |
+
+---
 
 ## License
 

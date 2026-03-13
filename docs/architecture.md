@@ -1,79 +1,104 @@
-# NotifyFlow Architecture
+# Architecture
 
 ## System Overview
 
-NotifyFlow is an event-driven notification microservices system built with **Spring Boot 3**, **Java 21**, and **RabbitMQ**. It demonstrates production-grade patterns including API gateway routing, asynchronous messaging, resilience, observability, and structured logging.
+NotifyFlow is an **event-driven notification platform** that demonstrates how enterprise systems publish business events which trigger downstream notification services through asynchronous messaging.
+
+The platform is composed of three microservices communicating via HTTP and AMQP (RabbitMQ), with a full observability stack for metrics, tracing, and dashboards.
+
+---
 
 ## Architecture Diagram
 
 ```
-┌──────────────┐       ┌──────────────────┐       ┌──────────────┐       ┌────────────────────────┐
-│              │       │                  │       │              │       │                        │
-│    Client    │──────▶│  Gateway Service │──────▶│ User Service │──────▶│       RabbitMQ         │
-│              │       │    (port 8083)   │       │  (port 8081) │       │    (port 5672)         │
-│              │       │                  │       │              │       │                        │
-└──────────────┘       └──────────────────┘       └──────────────┘       └───────────┬────────────┘
-                                                                                     │
-                                                                                     ▼
-                                                                        ┌────────────────────────┐
-                                                                        │                        │
-                                                                        │ Notification Service   │
-                                                                        │     (port 8082)        │
-                                                                        │                        │
-                                                                        └────────────────────────┘
+  ┌────────┐       ┌───────────────┐      ┌──────────────┐       ┌──────────────┐
+  │        │ HTTP  │               │ HTTP │              │ AMQP  │              │
+  │ Client │──────▶│    Gateway    │─────▶│    User      │──────▶│   RabbitMQ   │
+  │        │       │    Service    │      │   Service    │       │              │
+  └────────┘       │   (8083)     │      │   (8081)    │       └──────┬───────┘
+                   └───────────────┘      └──────┬───────┘              │
+                                                 │                     │ AMQP
+                                                 ▼                     ▼
+                                          ┌──────────────┐   ┌──────────────────┐
+                                          │ H2 Database  │   │  Notification    │
+                                          │ (in-memory)  │   │  Service (8082)  │
+                                          └──────────────┘   └──────────────────┘
 ```
 
-## Services
+---
 
-### Gateway Service (port 8083)
+## Service Responsibilities
 
-- **Role:** API gateway and single entry point for all clients
-- **Technology:** Spring Cloud Gateway (WebFlux)
-- **Responsibilities:**
-  - Route HTTP requests to downstream microservices
-  - Provide demo endpoints (`/demo/status`, `/demo/event`) for quick testing
-  - Expose aggregated Swagger UI for API documentation
-  - Emit distributed tracing spans
+### Gateway Service — port 8083
 
-### User Service (port 8081)
+| Aspect         | Detail                                                 |
+|----------------|--------------------------------------------------------|
+| Role           | API gateway and single entry point for all clients     |
+| Technology     | Spring Cloud Gateway (WebFlux)                         |
+| Key Endpoints  | `GET /demo/status`, `POST /demo/event`, `POST /api/events` |
+| Responsibilities | Route requests to downstream services, provide demo endpoints, expose Swagger UI, emit tracing spans |
 
-- **Role:** Event creation and publishing
-- **Technology:** Spring Boot, Spring Data JPA, Spring AMQP
-- **Responsibilities:**
-  - Accept event creation requests via REST API (`POST /api/events`)
-  - Persist events in H2 in-memory database
-  - Publish events to RabbitMQ exchange with Resilience4j retry and circuit breaker
-  - Expose Swagger UI for its own API documentation
+### User Service — port 8081
 
-### Notification Service (port 8082)
+| Aspect         | Detail                                                 |
+|----------------|--------------------------------------------------------|
+| Role           | Event creation and publishing                          |
+| Technology     | Spring Boot, Spring Data JPA, Spring AMQP              |
+| Key Endpoint   | `POST /api/events`                                     |
+| Responsibilities | Accept events via REST API, persist to H2 database, publish to RabbitMQ with retry + circuit breaker |
 
-- **Role:** Event consumption and notification delivery
-- **Technology:** Spring Boot, Spring AMQP
-- **Responsibilities:**
-  - Listen to RabbitMQ queue for incoming events
-  - Process events and simulate notification delivery
-  - Log notification status with structured logging
+### Notification Service — port 8082
 
-### RabbitMQ
+| Aspect         | Detail                                                 |
+|----------------|--------------------------------------------------------|
+| Role           | Event consumption and notification delivery            |
+| Technology     | Spring Boot, Spring AMQP                               |
+| Listener       | `@RabbitListener` on `events.queue`                    |
+| Responsibilities | Consume events from RabbitMQ, process events, log notification delivery |
 
-- **Role:** Asynchronous message broker
-- **Exchange:** `events.exchange` (Topic)
-- **Queue:** `events.queue` (Durable)
-- **Routing Key:** `events.key`
+### RabbitMQ — port 5672
+
+| Aspect       | Detail                       |
+|--------------|------------------------------|
+| Exchange     | `events.exchange` (Topic)    |
+| Queue        | `events.queue` (Durable)     |
+| Routing Key  | `events.key`                 |
+| Serialization| Jackson JSON                 |
+
+---
 
 ## Observability Stack
 
-| Tool       | Port | Purpose                |
-|------------|------|------------------------|
-| Prometheus | 9090 | Metrics collection     |
-| Grafana    | 3000 | Metrics visualization  |
-| Zipkin     | 9411 | Distributed tracing    |
+| Tool       | Port | Purpose                                          |
+|------------|------|--------------------------------------------------|
+| Prometheus | 9090 | Scrapes `/actuator/prometheus` from all services  |
+| Grafana    | 3000 | Pre-provisioned dashboards for HTTP and JVM metrics |
+| Zipkin     | 9411 | Collects distributed traces across all services   |
+
+All three services emit metrics and tracing data automatically via Micrometer.
+
+---
 
 ## Resilience Patterns
 
-| Pattern         | Configuration                                        |
-|-----------------|------------------------------------------------------|
-| Retry           | 3 attempts, exponential backoff (500ms base)         |
-| Circuit Breaker | Opens at 50% failure rate, 10s wait in open state    |
+Applied to the RabbitMQ publishing path in User Service:
 
-Both patterns are applied to the RabbitMQ publishing path in User Service.
+| Pattern         | Configuration                                     |
+|-----------------|---------------------------------------------------|
+| **Retry**       | 3 attempts, exponential backoff (500ms base)      |
+| **Circuit Breaker** | Opens at 50% failure rate, 10s wait in open state |
+
+When the circuit breaker opens, a fallback method logs the failure and prevents cascading errors.
+
+---
+
+## Design Decisions
+
+| Decision                          | Rationale                                                    |
+|-----------------------------------|--------------------------------------------------------------|
+| Spring Cloud Gateway (WebFlux)    | Non-blocking gateway for high throughput                     |
+| RabbitMQ over Kafka               | Simpler setup for point-to-point notification delivery       |
+| H2 in-memory database             | Zero-config, ideal for demonstration — swap for PostgreSQL in production |
+| Resilience4j over Hystrix         | Modern, lightweight, actively maintained                     |
+| Docker Compose for orchestration  | Single-command local environment for 7 containers            |
+| Environment variable configuration| Credentials externalized — ready for cloud deployment        |
