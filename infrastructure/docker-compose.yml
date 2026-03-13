@@ -67,6 +67,7 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
       ZIPKIN_URL: http://zipkin:9411
+      TRACING_ENABLED: true
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -94,6 +95,7 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
       ZIPKIN_URL: http://zipkin:9411
+      TRACING_ENABLED: true
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -119,6 +121,7 @@ services:
       PORT: 8080
       USER_SERVICE_URL: http://user-service:8081
       ZIPKIN_URL: http://zipkin:9411
+      TRACING_ENABLED: true
     depends_on:
       user-service:
         condition: service_healthy

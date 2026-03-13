@@ -7,6 +7,11 @@ spring:
   cloud:
     gateway:
       routes:
+        # Route: forwards /api/events/** to the User Service.
+        #
+        # - Local development: defaults to http://localhost:8081
+        # - Production (Render): set USER_SERVICE_URL env var to the deployed URL,
+        #   e.g. https://notifyflow-user-service.onrender.com
         - id: user-service-route
           uri: ${USER_SERVICE_URL:http://localhost:8081}
           predicates:
@@ -29,6 +34,7 @@ management:
     tags:
       application: gateway-service
   tracing:
+    enabled: ${TRACING_ENABLED:false}
     sampling:
       probability: 1.0
   zipkin:
