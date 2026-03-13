@@ -34,12 +34,6 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Jackson for JSON deserialization -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-
         <!-- Actuator -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -7,12 +7,12 @@ RUN mvn -B -q -e -DskipTests dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:21-jre-alpine
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
 WORKDIR /app
 COPY --from=builder /build/target/*.jar app.jar
 
 EXPOSE 8081
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xss512k", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]
