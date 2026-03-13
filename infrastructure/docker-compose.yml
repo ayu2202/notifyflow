@@ -114,15 +114,16 @@ services:
       dockerfile: Dockerfile
     container_name: notifyflow-gateway-service
     ports:
-      - "8083:8083"
+      - "8083:8080"
     environment:
+      PORT: 8080
       USER_SERVICE_URL: http://user-service:8081
       ZIPKIN_URL: http://zipkin:9411
     depends_on:
       user-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 15s
       timeout: 5s
       retries: 5

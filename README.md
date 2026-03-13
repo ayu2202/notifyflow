@@ -87,9 +87,9 @@ How events move through the platform:
 
 ### Prerequisites
 
-- Java 21 (JDK)
-- Maven 3.8+
 - Docker & Docker Compose
+
+> **No local Java or Maven installation required.** All services are built inside Docker using multi-stage builds.
 
 ### Start the System
 
@@ -101,7 +101,7 @@ chmod +x scripts/*.sh
 bash scripts/start-local.sh
 ```
 
-This builds all services and starts 7 containers — RabbitMQ, Zipkin, Prometheus, Grafana, and 3 microservices.
+This builds all service images and starts 7 containers — RabbitMQ, Zipkin, Prometheus, Grafana, and 3 microservices. No manual Maven build step needed.
 
 ### Test the Event Pipeline
 

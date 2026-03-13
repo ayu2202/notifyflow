@@ -4,10 +4,10 @@
 
 | Requirement    | Version | Check Command            |
 |----------------|---------|--------------------------|
-| Java (JDK)     | 21+     | `java -version`          |
-| Maven          | 3.8+    | `mvn -version`           |
 | Docker         | 20+     | `docker --version`       |
 | Docker Compose | v2+     | `docker compose version` |
+
+> **Java and Maven are not required locally.** All services are built inside Docker using multi-stage builds. You only need Java/Maven if you want to run services outside of Docker (see [Running Without Docker](#running-without-docker)).
 
 ---
 
