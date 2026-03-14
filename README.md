@@ -83,6 +83,35 @@ How events move through the platform:
 
 ---
 
+## Live Demo — Test the Event Pipeline
+
+The NotifyFlow platform is deployed on Render. You can test the full event-driven pipeline in under 30 seconds — the request flows through the API Gateway, stores an event in the User Service, publishes it to RabbitMQ, and is consumed asynchronously by the Notification Service.
+
+**Trigger the pipeline:**
+
+```bash
+curl -X POST https://notifyflow-gateway-service.onrender.com/api/events \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventType":"TASK_ASSIGNED",
+    "userEmail":"demo@notifyflow.com",
+    "message":"Live deployment test"
+  }'
+```
+
+### What Happens After This Request
+
+- **Client → API Gateway** — the request hits the Gateway Service
+- **API Gateway → User Service** — the gateway routes it to the User Service
+- **User Service → Database** — the event is saved to the H2 database
+- **User Service → RabbitMQ** — the event is published to the message broker
+- **Notification Service → Queue** — the Notification Service consumes the message
+- **Notification Service → Delivery** — the notification is logged as delivered
+
+This demonstrates an event-driven microservice architecture where services communicate asynchronously through RabbitMQ.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
